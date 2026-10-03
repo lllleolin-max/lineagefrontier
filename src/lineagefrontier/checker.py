@@ -13,6 +13,22 @@ def check_plan(manifest: Manifest, available, requested, execution_order) -> dic
     unknown = (ready | targets) - manifest.artifacts.keys()
     if unknown:
         raise LineageError(f"checker: unknown artifact IDs {sorted(unknown)}")
+    # Reserve new generations before replay. Old downstream bytes cannot remain
+    # reusable after a batch overwrites an otherwise valid co-output.
+    produced = set()
+    for aid in execution_order:
+        if aid not in manifest.actions:
+            raise LineageError(f"checker: unknown action {aid}")
+        overlap = produced & set(manifest.actions[aid].outputs)
+        if overlap:
+            raise LineageError(f"checker: repeated producer for slots {sorted(overlap)}")
+        produced.update(manifest.actions[aid].outputs)
+    invalidated = set(produced)
+    for artifact in manifest.topological:
+        if any(dep in invalidated for dep in manifest.dependencies[artifact]):
+            invalidated.add(artifact)
+    excluded = ready & invalidated
+    ready.difference_update(invalidated)
     seen, cost, trace = set(), 0, []
     for aid in execution_order:
         if aid not in manifest.actions:
@@ -28,4 +44,4 @@ def check_plan(manifest: Manifest, available, requested, execution_order) -> dic
         cost += action.cost
         trace.append({"action": aid, "consumed": list(action.inputs), "produced": list(action.outputs)})
     missing = targets - ready
-    return {"feasible": not missing, "cost": cost, "missing": sorted(missing), "available_after": sorted(ready), "trace": trace}
+    return {"feasible": not missing, "cost": cost, "missing": sorted(missing), "invalidated_reuse": sorted(excluded), "available_after": sorted(ready), "trace": trace}

@@ -28,7 +28,7 @@ lineagefrontier plan demo-work/manifest.json --root demo-work --request release
 lineagefrontier plan demo-work/manifest.json --root demo-work --request release --revoke raw=withdrawn
 ```
 
-JSON on stdout. Exit `0` means a conditional feasible decision, `2` invalid input/file-safety error, `3` no plan. `optimality: EXACT` certifies the minimum total declared cost **within the supplied catalog** with ties by fewer actions then lexicographic action IDs. `UNKNOWN` supplies a checker-verified upper bound, never a minimum claim. `ready_frontier` lists selected actions ready now; `execution_order` includes every prerequisite step. The returned plan is conditional on the declared recipe inputs being complete and successful execution; verify and reattest outputs afterward.
+JSON on stdout. Exit `0` means a conditional feasible decision, `2` invalid input/file-safety error, `3` proven infeasible within the supported unique-producer model, `4` bounded search found no plan and cannot decide. `optimality: EXACT` certifies the minimum total declared cost **within the supplied catalog and at most one producer per output slot per plan**, with ties by fewer actions then lexicographic action IDs. `UNKNOWN` with a feasible plan supplies a checker-verified upper bound, never a minimum claim. `ready_frontier` lists selected actions ready now; `execution_order` includes every prerequisite step. The returned plan is conditional on the declared recipe inputs being complete and successful execution; verify and reattest outputs afterward.
 
 ## SDK
 

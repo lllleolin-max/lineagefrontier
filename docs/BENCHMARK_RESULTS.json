@@ -78,7 +78,7 @@
     {
       "actual_release_stale": true,
       "bounded_cost": null,
-      "bounded_optimality": "REACHABILITY_PROOF",
+      "bounded_optimality": "UNKNOWN",
       "checksum_reuses_release": true,
       "independent_notes_preserved": false,
       "lineage_cost": null,

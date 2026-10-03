@@ -14,9 +14,9 @@ from lineagefrontier.cli import main
 
 
 def exhaustive_order_oracle(manifest, initial, targets):
-    """Independent small-state oracle: explore action sequences, not subsets."""
+    """Independent version-aware sequence oracle, with dynamic invalidation."""
     best = None
-    def visit(available, used, cost):
+    def visit(available, used, cost, produced, dependencies):
         nonlocal best
         if set(targets) <= available:
             key = (cost, len(used), tuple(sorted(used)))
@@ -25,9 +25,18 @@ def exhaustive_order_oracle(manifest, initial, targets):
         if best is not None and cost > best[0]:
             return
         for aid, action in manifest.actions.items():
-            if aid not in used and all(i in available for i in action.inputs):
-                visit(available | set(action.outputs), used | {aid}, cost + action.cost)
-    visit(set(initial), set(), 0)
+            if aid not in used and not produced.intersection(action.outputs) and all(i in available for i in action.inputs):
+                changed = set(action.outputs)
+                while True:
+                    old_len = len(changed)
+                    changed.update(n for n, ds in dependencies.items() if any(d in changed for d in ds))
+                    if len(changed) == old_len:
+                        break
+                next_deps = dict(dependencies)
+                for output in action.outputs:
+                    next_deps[output] = action.inputs
+                visit((available - changed) | set(action.outputs), used | {aid}, cost + action.cost, produced | set(action.outputs), next_deps)
+    visit(set(initial), set(), 0, set(), dict(manifest.dependencies))
     return best
 
 

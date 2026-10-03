@@ -66,7 +66,12 @@ def assess(manifest: Manifest, root: str | Path, revoked: dict[str, str] | None 
 
 
 def _schedule(manifest, selected, initial):
-    available = set(initial)
+    outputs = []
+    for aid in selected:
+        outputs.extend(manifest.actions[aid].outputs)
+    if len(set(outputs)) != len(outputs):
+        return None
+    available = set(initial) - _descendants(manifest, outputs)
     remaining = set(selected)
     order = []
     while remaining:
@@ -80,6 +85,15 @@ def _schedule(manifest, selected, initial):
     return order, available
 
 
+def _descendants(manifest, seeds):
+    """Include seeds: a new generation invalidates its historical descendants."""
+    invalid = set(seeds)
+    for aid in manifest.topological:
+        if set(manifest.dependencies[aid]) & invalid:
+            invalid.add(aid)
+    return invalid
+
+
 def _relevant(manifest, targets, initial):
     needed, relevant = set(targets) - set(initial), set()
     while True:
@@ -87,8 +101,11 @@ def _relevant(manifest, targets, initial):
         if not addition:
             return sorted(relevant)
         relevant.update(addition)
-        for aid in addition:
-            needed.update(set(manifest.actions[aid].inputs) - set(initial))
+        outputs = {o for a in relevant for o in manifest.actions[a].outputs}
+        reusable = set(initial) - _descendants(manifest, outputs)
+        needed.update(set(targets) - reusable)
+        for aid in relevant:
+            needed.update(set(manifest.actions[aid].inputs) - reusable)
 
 
 def plan(manifest: Manifest, assessment: dict, requested, *, exact_limit: int = 18) -> dict:
@@ -118,17 +135,20 @@ def plan(manifest: Manifest, assessment: dict, requested, *, exact_limit: int = 
             if result and set(targets) <= result[1]:
                 best = (key, result[0])
     else:
-        # Forward reachability finds a feasible plan if one exists under monotone
-        # production. Reverse deletion shrinks it; no optimality is inferred.
-        available, remaining, order = set(initial), set(relevant), []
+        # Conservative unique-producer greedy scheduling can miss feasible plans.
+        # Reverse deletion shrinks a found plan; failure is UNKNOWN, not proof.
+        outputs = {o for a in relevant for o in manifest.actions[a].outputs}
+        available, remaining, order = set(initial) - _descendants(manifest, outputs), set(relevant), []
+        produced = set()
         while remaining:
-            ready = sorted((a for a in remaining if set(manifest.actions[a].inputs) <= available), key=lambda a: (manifest.actions[a].cost, a))
+            ready = sorted((a for a in remaining if set(manifest.actions[a].inputs) <= available and not set(manifest.actions[a].outputs) & produced), key=lambda a: (manifest.actions[a].cost, a))
             if not ready:
                 break
             aid = ready[0]
             remaining.remove(aid)
             order.append(aid)
             available.update(manifest.actions[aid].outputs)
+            produced.update(manifest.actions[aid].outputs)
         if set(targets) <= available:
             selected = set(order)
             for aid in sorted(selected, key=lambda a: (-manifest.actions[a].cost, a)):
@@ -138,11 +158,12 @@ def plan(manifest: Manifest, assessment: dict, requested, *, exact_limit: int = 
             chosen = tuple(sorted(selected))
             best = ((sum(manifest.actions[a].cost for a in chosen), len(chosen), chosen), _schedule(manifest, selected, initial)[0])
     if best is None:
-        return {"status": "INFEASIBLE", "optimality": "EXACT" if exact else "REACHABILITY_PROOF", "requested": targets, "affected_requested": sorted(set(targets) & set(assessment["stale"])), "execution_order": [], "cost": None, "relevant_actions": relevant, "states_examined": states, "reason": "No prerequisite-respecting catalog plan reaches all requested current artifacts."}
+        return {"status": "INFEASIBLE" if exact else "UNKNOWN", "optimality": "EXACT" if exact else "UNKNOWN", "requested": targets, "affected_requested": sorted(set(targets) & set(assessment["stale"])), "execution_order": [], "cost": None, "relevant_actions": relevant, "states_examined": states, "reason": "No supported unique-producer plan found." if exact else "Bounded greedy search found no plan; this is not an infeasibility proof."}
     order = best[1]
     checked = check_plan(manifest, initial, targets, order)
     if not checked["feasible"] or checked["cost"] != best[0][0]:
         raise AssertionError("independent replay rejected optimizer result")
     produced = set().union(*(set(manifest.actions[a].outputs) for a in order)) if order else set()
-    frontier = [a for a in order if set(manifest.actions[a].inputs) <= initial]
-    return {"status": "CONDITIONAL_FEASIBLE", "optimality": "EXACT" if exact else "UNKNOWN", "requested": targets, "affected_requested": sorted(set(targets) & set(assessment["stale"])), "cost": checked["cost"], "cost_lower_bound": checked["cost"] if exact else 0, "execution_order": order, "ready_frontier": frontier, "reused": sorted(initial - produced), "replaced_valid_outputs": sorted(produced & set(assessment["valid"])), "relevant_actions": relevant, "states_examined": states, "checker": checked, "actions": [{"id": a, "instruction": manifest.actions[a].instruction} for a in order], "condition": "Catalog actions succeed with declared complete inputs and outputs; capture fresh digests/provenance after actual execution."}
+    effective_initial = initial - _descendants(manifest, produced)
+    frontier = [a for a in order if set(manifest.actions[a].inputs) <= effective_initial]
+    return {"status": "CONDITIONAL_FEASIBLE", "optimality": "EXACT" if exact else "UNKNOWN", "requested": targets, "affected_requested": sorted(set(targets) & set(assessment["stale"])), "cost": checked["cost"], "cost_lower_bound": checked["cost"] if exact else 0, "execution_order": order, "ready_frontier": frontier, "reused": sorted(effective_initial), "invalidated_by_plan": checked["invalidated_reuse"], "replaced_valid_outputs": sorted(produced & set(assessment["valid"])), "relevant_actions": relevant, "states_examined": states, "checker": checked, "actions": [{"id": a, "instruction": manifest.actions[a].instruction} for a in order], "condition": "Catalog actions succeed with declared complete inputs and outputs; capture fresh digests/provenance after actual execution."}

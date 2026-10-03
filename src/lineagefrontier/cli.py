@@ -36,7 +36,7 @@ def main(argv=None):
             assessment = assess(manifest, args.root, revocations)
             decision = plan(manifest, assessment, args.request, exact_limit=args.exact_limit)
             report = {"assessment": assessment, "plan": decision}
-            status = 3 if decision["status"] == "INFEASIBLE" else 0
+            status = 3 if decision["status"] == "INFEASIBLE" else 4 if decision["status"] == "UNKNOWN" else 0
         print(json.dumps(report, indent=2, sort_keys=True))
         return status
     except (LineageError, OSError) as exc:
