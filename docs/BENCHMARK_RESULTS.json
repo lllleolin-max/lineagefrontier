@@ -1,0 +1,94 @@
+{
+  "fixture": "Synthetic 10-artifact research release; integer costs are declared units, not measured seconds or dollars",
+  "results": [
+    {
+      "actual_release_stale": true,
+      "bounded_cost": 13,
+      "bounded_optimality": "UNKNOWN",
+      "checksum_reuses_release": true,
+      "independent_notes_preserved": true,
+      "lineage_cost": 11,
+      "lineage_order": [
+        "clean",
+        "fit-batch",
+        "chart",
+        "bundle"
+      ],
+      "lineage_status": "CONDITIONAL_FEASIBLE",
+      "no_alternative_status": "CONDITIONAL_FEASIBLE",
+      "rebuild_all_cost": 13,
+      "rebuild_all_feasible": true,
+      "scenario": "changed-bytes-same-filename",
+      "unbatched_cost": 13
+    },
+    {
+      "actual_release_stale": true,
+      "bounded_cost": 10,
+      "bounded_optimality": "UNKNOWN",
+      "checksum_reuses_release": true,
+      "independent_notes_preserved": true,
+      "lineage_cost": 8,
+      "lineage_order": [
+        "fit-batch",
+        "chart",
+        "bundle"
+      ],
+      "lineage_status": "CONDITIONAL_FEASIBLE",
+      "no_alternative_status": "CONDITIONAL_FEASIBLE",
+      "rebuild_all_cost": 13,
+      "rebuild_all_feasible": true,
+      "scenario": "shared-output-revocation",
+      "unbatched_cost": 10
+    },
+    {
+      "actual_release_stale": true,
+      "bounded_cost": 17,
+      "bounded_optimality": "UNKNOWN",
+      "checksum_reuses_release": true,
+      "independent_notes_preserved": true,
+      "lineage_cost": 15,
+      "lineage_order": [
+        "recover-clean",
+        "fit-batch",
+        "chart",
+        "bundle"
+      ],
+      "lineage_status": "CONDITIONAL_FEASIBLE",
+      "no_alternative_status": "INFEASIBLE",
+      "rebuild_all_cost": null,
+      "rebuild_all_feasible": false,
+      "scenario": "revoked-source",
+      "unbatched_cost": 17
+    },
+    {
+      "actual_release_stale": false,
+      "bounded_cost": 0,
+      "bounded_optimality": "EXACT",
+      "checksum_reuses_release": true,
+      "independent_notes_preserved": false,
+      "lineage_cost": 0,
+      "lineage_order": [],
+      "lineage_status": "CONDITIONAL_FEASIBLE",
+      "no_alternative_status": "CONDITIONAL_FEASIBLE",
+      "rebuild_all_cost": 13,
+      "rebuild_all_feasible": true,
+      "scenario": "independent-branch",
+      "unbatched_cost": 0
+    },
+    {
+      "actual_release_stale": true,
+      "bounded_cost": null,
+      "bounded_optimality": "REACHABILITY_PROOF",
+      "checksum_reuses_release": true,
+      "independent_notes_preserved": false,
+      "lineage_cost": null,
+      "lineage_order": [],
+      "lineage_status": "INFEASIBLE",
+      "no_alternative_status": "INFEASIBLE",
+      "rebuild_all_cost": null,
+      "rebuild_all_feasible": false,
+      "scenario": "missing-inputs",
+      "unbatched_cost": null
+    }
+  ]
+}
