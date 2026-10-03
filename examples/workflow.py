@@ -61,7 +61,7 @@ def create(root):
 
 
 def refresh_records(root, raw, order):
-    """Actual demo execution followed by fresh SHA-256/provenance generation."""
+    """Execute, recapture and persist fresh records for later CLI verification."""
     history = dict(HISTORY)
     for aid in order:
         execute(root, aid)
@@ -71,6 +71,7 @@ def refresh_records(root, raw, order):
     for artifact in raw["artifacts"]:
         artifact["digest"]["sha256"] = hashlib.sha256((root / artifact["path"]).read_bytes()).hexdigest()
     raw["statements"] = [statement(root, [aid], deps) for aid, deps in history.items()]
+    (root / "manifest.json").write_text(json.dumps(raw, indent=2), encoding="utf-8")
     return raw
 
 

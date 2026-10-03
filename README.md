@@ -28,6 +28,10 @@ lineagefrontier plan demo-work/manifest.json --root demo-work --request release
 lineagefrontier plan demo-work/manifest.json --root demo-work --request release --revoke raw=withdrawn
 ```
 
+The separate retained CLI run without revocation reports `assessment.stale: []`, `plan.cost: 0` and no execution actions. With `--revoke raw=withdrawn`, it reports cost **15** and `recover-clean → fit-batch → chart → bundle`. The demo persists the recaptured inventory and statements to the same `manifest.json`, so these checks read fresh records from disk rather than an in-memory snapshot.
+
+保留演示目录后，单独 CLI 无撤销应报告零过期、零成本；撤销 `raw` 后选择替代恢复方案，成本 15。重新采集的记录实际写回 `manifest.json`，不是仅在演示进程内显示成功。
+
 JSON on stdout. Exit `0` means a conditional feasible decision, `2` invalid input/file-safety error, `3` proven infeasible within the supported unique-producer model, `4` bounded search found no plan and cannot decide. `optimality: EXACT` certifies the minimum total declared cost **within the supplied catalog and at most one producer per output slot per plan**, with ties by fewer actions then lexicographic action IDs. `UNKNOWN` with a feasible plan supplies a checker-verified upper bound, never a minimum claim. `ready_frontier` lists selected actions ready now; `execution_order` includes every prerequisite step. The returned plan is conditional on the declared recipe inputs being complete and successful execution; verify and reattest outputs afterward.
 
 ## SDK
