@@ -89,6 +89,13 @@ class Manifest:
     actions: Mapping[str, Action]
     topological: tuple[str, ...]
 
+    def provenance_fingerprint(self) -> str:
+        """Bind a snapshot to inventory/recorded lineage, independent of recipes."""
+        records = [{"id": a.id, "digest": a.digest, "path": a.path, "kind": a.kind,
+                    "dependencies": self.dependencies[a.id], "builder": self.builders.get(a.id)}
+                   for a in self.artifacts.values()]
+        return hashlib.sha256(json.dumps(records, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
     @classmethod
     def from_dict(cls, raw: dict) -> "Manifest":
         raw = _obj(raw, "manifest")

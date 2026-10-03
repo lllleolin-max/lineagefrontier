@@ -2,10 +2,21 @@
 from __future__ import annotations
 
 from pathlib import Path
+import hashlib
+import json
 from .model import Manifest, LineageError, hash_file
 from .checker import check_plan
 
 MAX_CAUSES = 128
+
+
+def _snapshot_digest(report):
+    try:
+        data = {k: v for k, v in report.items() if k != "snapshot_digest"}
+        encoded = json.dumps(data, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+    except (TypeError, ValueError, RecursionError) as exc:
+        raise LineageError("snapshot integrity: expected finite JSON assessment from assess()") from exc
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def assess(manifest: Manifest, root: str | Path, revoked: dict[str, str] | None = None) -> dict:
@@ -62,7 +73,9 @@ def assess(manifest: Manifest, root: str | Path, revoked: dict[str, str] | None 
         (stale if causes[aid] else valid).append(aid)
         if aid in manifest.builders:
             record["claimed_builder"] = manifest.builders[aid]
-    return {"schema_version": 1, "trust": "UNAUTHENTICATED_RECORDED_PROVENANCE", "artifacts": records, "stale": stale, "valid": valid, "available": available}
+    report = {"schema_version": 1, "trust": "UNAUTHENTICATED_RECORDED_PROVENANCE", "provenance_fingerprint": manifest.provenance_fingerprint(), "artifacts": records, "stale": stale, "valid": valid, "available": available}
+    report["snapshot_digest"] = _snapshot_digest(report)
+    return report
 
 
 def _schedule(manifest, selected, initial):
@@ -115,9 +128,13 @@ def plan(manifest: Manifest, assessment: dict, requested, *, exact_limit: int = 
     a replay-checked feasible upper bound and reports UNKNOWN optimality.
     This is a decision, not execution, output-byte prediction or authentication.
     """
-    targets = sorted(set(requested))
-    if not targets or any(t not in manifest.artifacts for t in targets):
+    if not isinstance(requested, (list, tuple, set, frozenset)) or not requested or any(not isinstance(t, str) or t not in manifest.artifacts for t in requested):
         raise LineageError("requested must contain known artifact IDs")
+    targets = sorted(set(requested))
+    if not isinstance(assessment, dict) or assessment.get("provenance_fingerprint") != manifest.provenance_fingerprint():
+        raise LineageError("snapshot does not match manifest inventory/recorded provenance; call assess() again")
+    if assessment.get("snapshot_digest") != _snapshot_digest(assessment):
+        raise LineageError("snapshot integrity mismatch; do not modify assess() reports")
     if type(exact_limit) is not int or not 0 <= exact_limit <= 18:
         raise LineageError("exact_limit must be an integer in 0..18")
     initial = set(assessment["available"])
