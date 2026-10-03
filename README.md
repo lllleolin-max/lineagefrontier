@@ -84,7 +84,32 @@ verified = check_plan(manifest, snapshot["available"], ["release"],
 
 Use `Manifest.from_dict()` for existing bare attestation JSON plus local inventory and a reviewed action catalog. The example constructs every field. Inventory IDs are local logical slots; provenance edges match SHA-256, **regardless of names**, and paths identify current files only. Missing nodes, duplicate IDs or ambiguous duplicate inventory digests, repeated output provenance and provenance cycles are rejected. Valid renamed files are reusable after updating their locator.
 
+Version 0.2 precomputes historical descendant and action input/output masks for
+each `plan()` invocation. Candidate subsets reuse those masks instead of walking
+the complete historical graph again. Atomic co-output replacement still
+invalidates every historical descendant, and the separate forward checker still
+replays a selected plan against the full graph. The 18-action exact bound, tie
+rules, conditional execution and UNKNOWN fallback remain unchanged; no masks
+are reused across manifests or assessments.
+
+To measure a disclosed 1000-artifact chain and branch with 18 candidate actions:
+
+```sh
+python benchmarks/planner_work.py --out planner-work.json
+python benchmarks/planner_work.py --artifacts 10 --shapes branch --clean --samples 7 --out small-clean-work.json
+```
+
+Choose new output filenames: the benchmark refuses to overwrite existing files.
+It constructs and assesses real temporary synthetic files, then reports complete
+plan timings, graph visits, index allocation cost and dense JSON size/cost.
+The larger local case improved, while an already-valid 10-artifact case became
+slower because it still builds the index. Dense witness output and the bounded
+exponential subset search remain real costs. These are measured synthetic cases,
+not production latency or memory guarantees. [Cost scope and results](docs/PLANNER_WORK.md).
+
 输入表的 `kind=input` 是当前原材料；变更后的原材料可提供新字节供重建，但旧版后代均失效。撤销/缺失的输入不可复用。`kind=output` 必须具有来源记录，字节匹配和整个历史依赖均有效才可复用。撤销的是记录的旧制品版本；可通过合法动作重新生成新版本，永久封禁逻辑名称须由外部策略处理。
+
+0.2 在一次规划内预计算历史后代失效集合及动作 bitmasks，减少候选子集重复全图遍历；仍保留原子多输出的代际失效与独立 checker 完整重放。18 动作上限、成本与平局规则、UNKNOWN 边界不变。映射不跨 manifest/assessment 缓存；初建有额外内存与时间，小型且已经有效的输入可能更慢。
 
 ## Evidence, limits and comparisons
 

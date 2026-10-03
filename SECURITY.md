@@ -7,3 +7,13 @@ Use a stable read-only snapshot supplied by a trusted caller. Path resolution an
 Report a reproducible problem to repository maintainers using an issue without sensitive files, credentials or private paths. For sensitive reports, request a private channel first; none is fabricated here. No external audit or verified security contact is claimed. Include Python/platform, manifest subset, expected behavior and a minimal synthetic reproduction.
 
 Snapshot/report digests prevent accidental association or mutation errors. They are unkeyed and are not signatures, identity verification or protection against a malicious report author who recomputes them. Planner inputs should come from a fresh `assess()` result for the same inventory/provenance and stable local filesystem snapshot.
+
+The planner's descendant/action masks are constructed locally after assessment
+association/integrity checks for every invocation and are discarded afterward.
+They are not authenticated generation IDs, a persistent cache or a concurrency
+protocol. All historical descendants of selected atomic co-outputs remain
+excluded from reuse. The independent checker still performs its own complete
+historical invalidation and prerequisite replay. Limits remain 1000 artifacts,
+10000 edges and at most 18 relevant actions for exact subset selection. Bitset
+precomputation uses additional memory and does not remove exponential selection
+or dense cause/witness output costs; use process limits for hostile workloads.
