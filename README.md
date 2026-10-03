@@ -6,14 +6,39 @@ Decide which release or research artifacts need rebuilding after a local input c
 
 ## Install and run / 安装与完整演示
 
-Python >=3.11, standard-library runtime. From the repository:
+Install from a source checkout with Python 3.11+:
 
 ```sh
-python -m pip install .
-python examples/workflow.py
-python benchmarks/compare.py
-python -m unittest discover -s tests -v
+git clone https://github.com/lllleolin-max/lineagefrontier.git
+cd lineagefrontier
 ```
+
+Linux/macOS:
+
+```sh
+python3 -m venv .venv
+.venv/bin/python -m pip install .
+.venv/bin/python examples/workflow.py
+```
+
+Windows PowerShell:
+
+```powershell
+py -3 -m venv .venv
+.venv\Scripts\python.exe -m pip install .
+.venv\Scripts\python.exe examples/workflow.py
+```
+
+In the remaining examples, `python` means this environment's interpreter:
+`.venv/bin/python` on Linux/macOS or `.venv\Scripts\python.exe` on Windows.
+The runtime uses the standard library; source installation may download build
+dependencies. No PyPI release is required for these instructions.
+
+The first run exits `0` and prints JSON: `changed_stale` contains the six
+artifact IDs below, `decision.cost` is `11`, `notes_branch_preserved` is `true`,
+and `after_execution_and_recapture_stale` is `[]`. Its temporary fixture is
+removed afterward. Optional checks: `python benchmarks/compare.py` and
+`python -m unittest discover -s tests -v`.
 
 The demo writes synthetic research inputs and derived files in a temporary directory, records SHA-256 and raw in-toto statements, changes `raw.bin` without renaming it, verifies the impact, chooses `clean → fit-batch → chart → bundle` at cost **11 declared units**, executes its own fixed demo transforms and captures fresh provenance. The independent `notes-html` branch remains reusable. After actual execution/recapture, no artifacts are stale. No manifest instruction is executed by the package.
 
@@ -23,10 +48,14 @@ To inspect the CLI on a retained synthetic fixture (its manifest is refreshed at
 
 ```sh
 python examples/workflow.py --keep demo-work
-lineagefrontier digest --root demo-work raw.bin
-lineagefrontier plan demo-work/manifest.json --root demo-work --request release
-lineagefrontier plan demo-work/manifest.json --root demo-work --request release --revoke raw=withdrawn
+python -m lineagefrontier digest --root demo-work raw.bin
+python -m lineagefrontier plan demo-work/manifest.json --root demo-work --request release
+python -m lineagefrontier plan demo-work/manifest.json --root demo-work --request release --revoke raw=withdrawn
 ```
+
+`--keep` writes and overwrites the demo's named fixture files in the selected
+directory. Use a dedicated demo directory, not a directory holding real artifacts.
+The installed `lineagefrontier` command is equivalent to the module form above.
 
 The separate retained CLI run without revocation reports `assessment.stale: []`, `plan.cost: 0` and no execution actions. With `--revoke raw=withdrawn`, it reports cost **15** and `recover-clean → fit-batch → chart → bundle`. The demo persists the recaptured inventory and statements to the same `manifest.json`, so these checks read fresh records from disk rather than an in-memory snapshot.
 
@@ -35,6 +64,12 @@ The separate retained CLI run without revocation reports `assessment.stale: []`,
 JSON on stdout. Exit `0` means a conditional feasible decision, `2` invalid input/file-safety error, `3` proven infeasible within the supported unique-producer model, `4` bounded search found no plan and cannot decide. `optimality: EXACT` certifies the minimum total declared cost **within the supplied catalog and at most one producer per output slot per plan**, with ties by fewer actions then lexicographic action IDs. `UNKNOWN` with a feasible plan supplies a checker-verified upper bound, never a minimum claim. `ready_frontier` lists selected actions ready now; `execution_order` includes every prerequisite step. The returned plan is conditional on the declared recipe inputs being complete and successful execution; verify and reattest outputs afterward.
 
 ## SDK
+
+Run after the retained-fixture command above. For your own build, provide a local
+file root, inventory/provenance manifest and reviewed action catalog. Read the
+assessment to decide what is stale, pass requested deliverable IDs to the planner,
+execute approved actions in your own runner, then capture and reassess new records.
+[中文实操手册](docs/RUNBOOK.zh-CN.md) covers this handoff.
 
 ```python
 from lineagefrontier import load_manifest, assess, plan, check_plan
