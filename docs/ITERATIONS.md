@@ -53,3 +53,86 @@ Actual fail-before command: `.venv-release/Scripts/python -m unittest discover -
 After correction: `f59880cc9cf0b7382097bbcb03d73684cec899fa` (`Persist retained demo inventory after provenance recapture`). Rebuilt a normal wheel with `py -3 -m pip wheel --no-deps --wheel-dir dist .` and force-installed `dist/lineagefrontier-0.1.0-py3-none-any.whl` into `.venv-release`. `.venv-release/Scripts/python -m unittest discover -s tests -v` exited 0: 29 run, 28 passed, 1 skipped (unchanged Windows symlink privilege limitation). New separate-process regression passed.
 
 Actual SDK demo `.venv-release/Scripts/python examples/workflow.py --keep demo-work` and executed contrast `.venv-release/Scripts/python benchmarks/compare.py` exited 0. Installed console CLI `.venv-release/Scripts/lineagefrontier plan demo-work/manifest.json --root demo-work --request release` reported stale count 0, cost 0, action count 0. Adding `--revoke raw=withdrawn` reported cost 15 and `[recover-clean, fit-batch, chart, bundle]`. Core `src/` diff from the before SHA is empty. Local checks remain Windows/Python 3.14.3; no remote CI result is claimed. The retained demo explicitly overwrites its named synthetic fixture files as documented; the library still does not execute manifest commands.
+
+## 0.2.0 self-review 1 — measure repeated graph work, then precompute
+
+Baseline: `fcdea689bca743dcf651feedf26248ef7135ba9c` (0.1.0).
+Parallel README additions `39ee94aca5b240a627d7511b1a4e09e73bec22cc`
+were preserved through normal fast-forward. Implementation:
+`1d72e8446fe8bfd94c4388397c0f0d389d94eaf9`.
+
+The baseline canonical LF archive/ordinary wheel/fresh isolated site bytes matched
+all six raw Git modules; pip check returned 0. Its original 29 tests ran in
+3.075 s, 28 passed and one Windows file-symlink privilege test skipped. The
+optimization started as a static scale candidate, not an already measured
+performance regression or incorrect baseline decision. Actual synthetic 1000-node
+chain/branch, 999 edges and 18-recipe probes each examined 262144 subset states,
+scheduled 150712 candidates and performed 19174 complete descendant walks:
+19174000 node and 19154826 edge visits. Full-plan medians were 2956.843 and
+2926.045 ms. Dense JSON was 4927282 and 503665 B, measured separately.
+
+One invocation-local index now computes each artifact's historical descendant
+mask, including itself, and action input/output/invalidation masks. The same
+index serves relevant closure, subset scheduling, fallback/reverse deletion and
+ready-frontier calculation. Atomic co-output historical generation exclusion and
+the independent final checker remain unchanged. Exact limits were not raised.
+The implementation's new ordinary wheel passed the original 29 tests in 3.312 s
+with the same permission skip. This is one substantive optimization; no new
+correctness defect or artificial fail-before test is claimed.
+
+## 0.2.0 self-review 2 — independent forward catalogs and honest costs
+
+Verification changes: `958ebd17a5bd15735ad17e8f5e2ec0549a7f245d` (0.2.0),
+with package source identical to `1d72e84`; new tests, benchmark, metadata and
+documentation were added. No second source correction is claimed.
+
+Two new tests passed against the normally installed implementation (2.589 s).
+One covers 120 new fixed-seed raw catalogs, computes availability through an
+independent breadth-first historical walk, and enumerates eligible forward
+execution orders. It checks feasibility, cost, action count, lexical ties,
+complete execution order, ready frontier, reused slots and unchanged raw data,
+assessment, requests and file bytes. The other prohibits repeated full
+`_descendants` calls while exercising the cheap batch/history-descendant case
+and edited-assessment rejection. Unchanged copied prior reviewer probes ran
+7 tests in 3.531 s, including another 120 dynamic-order catalogs with no mismatch
+and actual Windows root-escaping junction rejection. Old reviews were not edited.
+
+The 1000-artifact/18-recipe probe preserved complete dense JSON hashes. Full-plan
+medians became 707.756 ms (chain) and 721.688 ms (branch). Every plan constructs
+1000 artifact bits, visits 2000 historical nodes/1998 edges and performs 18
+output-closure lookups; the final checker still visits 1000 nodes/999 edges.
+Subset state/scheduler counts remain 262144/150712. Index construction costs
+0.730 ms/424388 B Python peak for the chain and 0.456 ms/312036 B for the branch.
+Complete-plan allocation peaks were effectively unchanged (old/new chain
+8808108/8808148 B; branch 943788/943828 B). Lifetime process RSS is recorded
+separately and is not plan-owned memory. An already-valid 10-artifact case became
+slower: old/new medians 0.051/0.109 ms, with identical output. These unfavorable
+costs and dense path output are retained. No total constant-memory, sublinear
+solver or production latency promise follows from fewer graph visits.
+
+## 0.2.0 self-review 3 — ordinary installed SDK and actual CLI handoff
+
+At `958ebd17a5bd15735ad17e8f5e2ec0549a7f245d`, a fresh canonical LF archive,
+ordinary 0.2.0 wheel and isolated site installation matched all six raw Git
+module byte sequences; pip check returned 0. The complete suite ran 31 tests in
+5.638 s: 30 passed, one unchanged Windows symlink privilege skip. The original
+29 tests were unchanged, including generation consistency, duplicate producers,
+association errors and bounded resource checks.
+
+The actual sysconfig console executable ran 24 commands across native and
+`PYTHONUTF8=0/1` modes. A separate retained demo handoff reports clean/cost 0;
+raw-source withdrawal selects recovery at cost 15; another real raw-file change
+and fresh assessment selects cost 11. Assessment/planning preserve manifest and
+artifact bytes. An old assessment remains an explicit old snapshot and must be
+replaced by reassessment after external writes; the test does not pretend the
+planner automatically rehashes files. Altered availability is rejected. Removing
+both source alternatives yields exact INFEASIBLE/exit 3, while the bounded
+failure is UNKNOWN/exit 4. The original seven-case comparison and actual demo
+execution/recapture passed, including rejection of the cheap generation ablation.
+
+No new source defect was found in this round; it verifies integration and does
+not fabricate a third repair. The final following documentation-only revision is
+bound by its own canonical archive/wheel/site association and full-suite record.
+Independent scoring and remote CI/publication are separate work. Historical
+three corrections and retained-workflow failure remain unchanged; no adoption,
+revenue or production claim is made.

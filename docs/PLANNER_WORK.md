@@ -51,9 +51,11 @@ edges, and resolves 18 action output closures. The final checker still visits
 actions and perform 410031 readiness checks. Raw manifest and entire dense
 assessment/plan JSON hashes match before and after, not merely the cost field.
 
-The old complete-plan Python-allocation peak is 8808108 B for the chain and
-943788 B for the branch; its process lifetime peak RSS was 47386624 B before
-and after planning. RSS is lifetime-wide, not plan-owned memory. The chain's
+The old/new complete-plan Python-allocation peak is 8808108/8808148 B for the
+chain and 943788/943828 B for the branch: no allocation-peak reduction is claimed.
+The old process lifetime peak RSS was 47386624 B before and after planning;
+the separate new process measured 47239168 B before and after. RSS is
+lifetime-wide, not plan-owned memory or evidence of a meaningful reduction. The chain's
 old dense serialization alone took 301.406 ms under allocation tracing versus
 26.814 ms for the branch. Long cause paths/full reports remain substantial.
 Index storage is an additional cost even when a plan needs no actions.
