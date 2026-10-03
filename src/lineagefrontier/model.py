@@ -92,7 +92,7 @@ class Manifest:
     @classmethod
     def from_dict(cls, raw: dict) -> "Manifest":
         raw = _obj(raw, "manifest")
-        if raw.get("schema_version") != 1:
+        if type(raw.get("schema_version")) is not int or raw["schema_version"] != 1:
             raise LineageError("schema_version: only 1 is supported")
         entries = _array(raw.get("artifacts"), "artifacts")
         if not entries or len(entries) > MAX_ARTIFACTS:
@@ -123,13 +123,18 @@ class Manifest:
             pred = _obj(statement.get("predicate"), "predicate")
             build = _obj(pred.get("buildDefinition"), "buildDefinition")
             _text(build.get("buildType"), "buildType")
-            external = build.get("externalParameters") or {}
+            external = build.get("externalParameters")
+            if external is None:
+                external = {}
             _obj(external, "externalParameters")
             run = _obj(pred.get("runDetails"), "runDetails")
             builder = _obj(run.get("builder"), "builder")
             builder_id = _text(builder.get("id"), "builder.id")
             dep_ids = set()
-            for resource in _array(build.get("resolvedDependencies") or [], "resolvedDependencies"):
+            resources = build.get("resolvedDependencies")
+            if resources is None:
+                resources = []
+            for resource in _array(resources, "resolvedDependencies"):
                 digest = _digest(resource, "resolvedDependency")
                 if digest not in by_digest:
                     raise LineageError(f"missing dependency digest: {digest}")
@@ -215,11 +220,23 @@ def _topological(dependencies):
 
 def load_manifest(path: str | Path) -> Manifest:
     path = Path(path)
-    if path.stat().st_size > MAX_MANIFEST_BYTES:
+    # Bound the actual read rather than trusting a pre-read stat on mutable files.
+    with path.open("rb") as stream:
+        payload = stream.read(MAX_MANIFEST_BYTES + 1)
+    if len(payload) > MAX_MANIFEST_BYTES:
         raise LineageError("manifest exceeds 2 MiB")
+    def unique_object(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise LineageError(f"duplicate JSON key: {key}")
+            result[key] = value
+        return result
+    def reject_nonfinite(value):
+        raise LineageError(f"nonfinite JSON constant: {value}")
     try:
-        raw = json.loads(path.read_text(encoding="utf-8"))
-    except (UnicodeError, json.JSONDecodeError) as exc:
+        raw = json.loads(payload.decode("utf-8"), object_pairs_hook=unique_object, parse_constant=reject_nonfinite)
+    except (UnicodeError, json.JSONDecodeError, RecursionError) as exc:
         raise LineageError(f"invalid manifest JSON: {exc}") from exc
     return Manifest.from_dict(raw)
 
