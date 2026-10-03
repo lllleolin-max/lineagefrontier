@@ -78,21 +78,88 @@ def assess(manifest: Manifest, root: str | Path, revoked: dict[str, str] | None 
     return report
 
 
-def _schedule(manifest, selected, initial):
-    outputs = []
+class _ScheduleIndex:
+    """One plan's bounded historical closures and action masks; never persisted.
+
+    All mappings belong to this manifest/assessment invocation. Integer masks
+    encode logical slots, not digests or independently authenticated generations.
+    """
+
+    def __init__(self, manifest, initial):
+        self.work = dict(artifact_bit_assignments=0, index_graph_nodes=0, index_graph_edges=0,
+                         action_input_slots=0, action_output_slots=0, descendant_queries=0,
+                         schedule_calls=0, selected_action_checks=0, readiness_checks=0)
+        self.bits = {}
+        for i, key in enumerate(manifest.artifacts):
+            self.work["artifact_bit_assignments"] += 1
+            self.bits[key] = 1 << i
+        children = {key: [] for key in manifest.artifacts}
+        for key, dependencies in manifest.dependencies.items():
+            self.work["index_graph_nodes"] += 1
+            for parent in dependencies:
+                self.work["index_graph_edges"] += 1
+                children[parent].append(key)
+        self.descendants = {}
+        for key in reversed(manifest.topological):
+            self.work["index_graph_nodes"] += 1
+            mask = self.bits[key]
+            for child in children[key]:
+                self.work["index_graph_edges"] += 1
+                mask |= self.descendants[child]
+            self.descendants[key] = mask
+        self.inputs, self.outputs, self.invalidates = {}, {}, {}
+        for key, action in manifest.actions.items():
+            self.work["action_input_slots"] += len(action.inputs)
+            self.work["action_output_slots"] += len(action.outputs)
+            self.inputs[key] = self.mask(action.inputs)
+            self.outputs[key] = self.mask(action.outputs)
+            self.invalidates[key] = self.descendant_mask(action.outputs)
+        self.initial = self.mask(initial)
+
+    def mask(self, keys):
+        result = 0
+        for key in keys:
+            result |= self.bits[key]
+        return result
+
+    def descendant_mask(self, keys):
+        result = 0
+        for key in keys:
+            self.work["descendant_queries"] += 1
+            result |= self.descendants[key]
+        return result
+
+    def invalidation(self, selected):
+        result = 0
+        for key in selected:
+            result |= self.invalidates[key]
+        return result
+
+    def ids(self, mask):
+        return {key for key, bit in self.bits.items() if mask & bit}
+
+
+def _schedule(index, selected):
+    index.work["schedule_calls"] += 1
+    outputs = 0
     for aid in selected:
-        outputs.extend(manifest.actions[aid].outputs)
-    if len(set(outputs)) != len(outputs):
-        return None
-    available = set(initial) - _descendants(manifest, outputs)
+        index.work["selected_action_checks"] += 1
+        if outputs & index.outputs[aid]:
+            return None
+        outputs |= index.outputs[aid]
+    available = index.initial & ~index.invalidation(selected)
     remaining = set(selected)
     order = []
     while remaining:
-        ready = sorted(a for a in remaining if set(manifest.actions[a].inputs) <= available)
+        ready = []
+        for aid in sorted(remaining):
+            index.work["readiness_checks"] += 1
+            if index.inputs[aid] & available == index.inputs[aid]:
+                ready.append(aid)
         if not ready:
             return None
         aid = ready[0]
-        available.update(manifest.actions[aid].outputs)
+        available |= index.outputs[aid]
         remaining.remove(aid)
         order.append(aid)
     return order, available
@@ -107,18 +174,17 @@ def _descendants(manifest, seeds):
     return invalid
 
 
-def _relevant(manifest, targets, initial):
-    needed, relevant = set(targets) - set(initial), set()
+def _relevant(index, targets):
+    needed, relevant = targets & ~index.initial, set()
     while True:
-        addition = {a for a, action in manifest.actions.items() if set(action.outputs) & needed} - relevant
+        addition = {a for a, outputs in index.outputs.items() if outputs & needed} - relevant
         if not addition:
             return sorted(relevant)
         relevant.update(addition)
-        outputs = {o for a in relevant for o in manifest.actions[a].outputs}
-        reusable = set(initial) - _descendants(manifest, outputs)
-        needed.update(set(targets) - reusable)
+        reusable = index.initial & ~index.invalidation(relevant)
+        needed |= targets & ~reusable
         for aid in relevant:
-            needed.update(set(manifest.actions[aid].inputs) - reusable)
+            needed |= index.inputs[aid] & ~reusable
 
 
 def plan(manifest: Manifest, assessment: dict, requested, *, exact_limit: int = 18) -> dict:
@@ -138,7 +204,9 @@ def plan(manifest: Manifest, assessment: dict, requested, *, exact_limit: int = 
     if type(exact_limit) is not int or not 0 <= exact_limit <= 18:
         raise LineageError("exact_limit must be an integer in 0..18")
     initial = set(assessment["available"])
-    relevant = _relevant(manifest, targets, initial)
+    index = _ScheduleIndex(manifest, initial)
+    target_mask = index.mask(targets)
+    relevant = _relevant(index, target_mask)
     exact = len(relevant) <= exact_limit
     best, states = None, 0
     if exact:
@@ -148,32 +216,32 @@ def plan(manifest: Manifest, assessment: dict, requested, *, exact_limit: int = 
             key = (sum(manifest.actions[a].cost for a in chosen), len(chosen), chosen)
             if best is not None and key >= best[0]:
                 continue
-            result = _schedule(manifest, chosen, initial)
-            if result and set(targets) <= result[1]:
+            result = _schedule(index, chosen)
+            if result and target_mask & result[1] == target_mask:
                 best = (key, result[0])
     else:
         # Conservative unique-producer greedy scheduling can miss feasible plans.
         # Reverse deletion shrinks a found plan; failure is UNKNOWN, not proof.
-        outputs = {o for a in relevant for o in manifest.actions[a].outputs}
-        available, remaining, order = set(initial) - _descendants(manifest, outputs), set(relevant), []
-        produced = set()
+        available, remaining, order = index.initial & ~index.invalidation(relevant), set(relevant), []
+        produced = 0
         while remaining:
-            ready = sorted((a for a in remaining if set(manifest.actions[a].inputs) <= available and not set(manifest.actions[a].outputs) & produced), key=lambda a: (manifest.actions[a].cost, a))
+            ready = sorted((a for a in remaining if index.inputs[a] & available == index.inputs[a]
+                            and not index.outputs[a] & produced), key=lambda a: (manifest.actions[a].cost, a))
             if not ready:
                 break
             aid = ready[0]
             remaining.remove(aid)
             order.append(aid)
-            available.update(manifest.actions[aid].outputs)
-            produced.update(manifest.actions[aid].outputs)
-        if set(targets) <= available:
+            available |= index.outputs[aid]
+            produced |= index.outputs[aid]
+        if target_mask & available == target_mask:
             selected = set(order)
             for aid in sorted(selected, key=lambda a: (-manifest.actions[a].cost, a)):
-                trial = _schedule(manifest, selected - {aid}, initial)
-                if trial and set(targets) <= trial[1]:
+                trial = _schedule(index, selected - {aid})
+                if trial and target_mask & trial[1] == target_mask:
                     selected.remove(aid)
             chosen = tuple(sorted(selected))
-            best = ((sum(manifest.actions[a].cost for a in chosen), len(chosen), chosen), _schedule(manifest, selected, initial)[0])
+            best = ((sum(manifest.actions[a].cost for a in chosen), len(chosen), chosen), _schedule(index, selected)[0])
     if best is None:
         return {"status": "INFEASIBLE" if exact else "UNKNOWN", "optimality": "EXACT" if exact else "UNKNOWN", "requested": targets, "affected_requested": sorted(set(targets) & set(assessment["stale"])), "execution_order": [], "cost": None, "relevant_actions": relevant, "states_examined": states, "reason": "No supported unique-producer plan found." if exact else "Bounded greedy search found no plan; this is not an infeasibility proof."}
     order = best[1]
@@ -181,6 +249,7 @@ def plan(manifest: Manifest, assessment: dict, requested, *, exact_limit: int = 
     if not checked["feasible"] or checked["cost"] != best[0][0]:
         raise AssertionError("independent replay rejected optimizer result")
     produced = set().union(*(set(manifest.actions[a].outputs) for a in order)) if order else set()
-    effective_initial = initial - _descendants(manifest, produced)
-    frontier = [a for a in order if set(manifest.actions[a].inputs) <= effective_initial]
+    effective_mask = index.initial & ~index.invalidation(order)
+    effective_initial = index.ids(effective_mask)
+    frontier = [a for a in order if index.inputs[a] & effective_mask == index.inputs[a]]
     return {"status": "CONDITIONAL_FEASIBLE", "optimality": "EXACT" if exact else "UNKNOWN", "requested": targets, "affected_requested": sorted(set(targets) & set(assessment["stale"])), "cost": checked["cost"], "cost_lower_bound": checked["cost"] if exact else 0, "execution_order": order, "ready_frontier": frontier, "reused": sorted(effective_initial), "invalidated_by_plan": checked["invalidated_reuse"], "replaced_valid_outputs": sorted(produced & set(assessment["valid"])), "relevant_actions": relevant, "states_examined": states, "checker": checked, "actions": [{"id": a, "instruction": manifest.actions[a].instruction} for a in order], "condition": "Catalog actions succeed with declared complete inputs and outputs; capture fresh digests/provenance after actual execution."}
