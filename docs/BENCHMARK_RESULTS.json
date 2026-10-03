@@ -2,10 +2,14 @@
   "fixture": "Synthetic 10-artifact research release; integer costs are declared units, not measured seconds or dollars",
   "results": [
     {
+      "actual_execution_recapture_requested_valid": true,
       "actual_release_stale": true,
       "bounded_cost": 13,
       "bounded_optimality": "UNKNOWN",
+      "bounded_status": "CONDITIONAL_FEASIBLE",
       "checksum_reuses_release": true,
+      "direct_only_reuses_release": true,
+      "generation_ablation": null,
       "independent_notes_preserved": true,
       "lineage_cost": 11,
       "lineage_order": [
@@ -16,16 +20,22 @@
       ],
       "lineage_status": "CONDITIONAL_FEASIBLE",
       "no_alternative_status": "CONDITIONAL_FEASIBLE",
+      "notes_bytes_unchanged": true,
       "rebuild_all_cost": 13,
       "rebuild_all_feasible": true,
+      "revocations_cleared_by_demo_owner": [],
       "scenario": "changed-bytes-same-filename",
       "unbatched_cost": 13
     },
     {
+      "actual_execution_recapture_requested_valid": true,
       "actual_release_stale": true,
       "bounded_cost": 10,
       "bounded_optimality": "UNKNOWN",
+      "bounded_status": "CONDITIONAL_FEASIBLE",
       "checksum_reuses_release": true,
+      "direct_only_reuses_release": true,
+      "generation_ablation": null,
       "independent_notes_preserved": true,
       "lineage_cost": 8,
       "lineage_order": [
@@ -35,16 +45,56 @@
       ],
       "lineage_status": "CONDITIONAL_FEASIBLE",
       "no_alternative_status": "CONDITIONAL_FEASIBLE",
+      "notes_bytes_unchanged": true,
       "rebuild_all_cost": 13,
       "rebuild_all_feasible": true,
+      "revocations_cleared_by_demo_owner": [
+        "metrics",
+        "model"
+      ],
       "scenario": "shared-output-revocation",
       "unbatched_cost": 10
     },
     {
+      "actual_execution_recapture_requested_valid": true,
+      "actual_release_stale": true,
+      "bounded_cost": 4,
+      "bounded_optimality": "UNKNOWN",
+      "bounded_status": "CONDITIONAL_FEASIBLE",
+      "checksum_reuses_release": true,
+      "direct_only_reuses_release": true,
+      "generation_ablation": {
+        "cost": 2,
+        "feasible": true,
+        "independent_checker_accepts": false
+      },
+      "independent_notes_preserved": true,
+      "lineage_cost": 4,
+      "lineage_order": [
+        "fit-batch",
+        "chart",
+        "bundle"
+      ],
+      "lineage_status": "CONDITIONAL_FEASIBLE",
+      "no_alternative_status": "CONDITIONAL_FEASIBLE",
+      "notes_bytes_unchanged": true,
+      "rebuild_all_cost": 9,
+      "rebuild_all_feasible": true,
+      "revocations_cleared_by_demo_owner": [
+        "model"
+      ],
+      "scenario": "co-output-generation",
+      "unbatched_cost": 5
+    },
+    {
+      "actual_execution_recapture_requested_valid": true,
       "actual_release_stale": true,
       "bounded_cost": 17,
       "bounded_optimality": "UNKNOWN",
+      "bounded_status": "CONDITIONAL_FEASIBLE",
       "checksum_reuses_release": true,
+      "direct_only_reuses_release": true,
+      "generation_ablation": null,
       "independent_notes_preserved": true,
       "lineage_cost": 15,
       "lineage_order": [
@@ -55,38 +105,77 @@
       ],
       "lineage_status": "CONDITIONAL_FEASIBLE",
       "no_alternative_status": "INFEASIBLE",
+      "notes_bytes_unchanged": true,
       "rebuild_all_cost": null,
       "rebuild_all_feasible": false,
+      "revocations_cleared_by_demo_owner": [],
       "scenario": "revoked-source",
       "unbatched_cost": 17
     },
     {
+      "actual_execution_recapture_requested_valid": true,
+      "actual_release_stale": true,
+      "bounded_cost": 1,
+      "bounded_optimality": "UNKNOWN",
+      "bounded_status": "CONDITIONAL_FEASIBLE",
+      "checksum_reuses_release": true,
+      "direct_only_reuses_release": false,
+      "generation_ablation": null,
+      "independent_notes_preserved": true,
+      "lineage_cost": 1,
+      "lineage_order": [
+        "bundle"
+      ],
+      "lineage_status": "CONDITIONAL_FEASIBLE",
+      "no_alternative_status": "CONDITIONAL_FEASIBLE",
+      "notes_bytes_unchanged": true,
+      "rebuild_all_cost": 13,
+      "rebuild_all_feasible": true,
+      "revocations_cleared_by_demo_owner": [
+        "release"
+      ],
+      "scenario": "direct-output-revocation",
+      "unbatched_cost": 1
+    },
+    {
+      "actual_execution_recapture_requested_valid": true,
       "actual_release_stale": false,
       "bounded_cost": 0,
       "bounded_optimality": "EXACT",
+      "bounded_status": "CONDITIONAL_FEASIBLE",
       "checksum_reuses_release": true,
+      "direct_only_reuses_release": true,
+      "generation_ablation": null,
       "independent_notes_preserved": false,
       "lineage_cost": 0,
       "lineage_order": [],
       "lineage_status": "CONDITIONAL_FEASIBLE",
       "no_alternative_status": "CONDITIONAL_FEASIBLE",
+      "notes_bytes_unchanged": true,
       "rebuild_all_cost": 13,
       "rebuild_all_feasible": true,
+      "revocations_cleared_by_demo_owner": [],
       "scenario": "independent-branch",
       "unbatched_cost": 0
     },
     {
+      "actual_execution_recapture_requested_valid": null,
       "actual_release_stale": true,
       "bounded_cost": null,
       "bounded_optimality": "UNKNOWN",
+      "bounded_status": "UNKNOWN",
       "checksum_reuses_release": true,
+      "direct_only_reuses_release": true,
+      "generation_ablation": null,
       "independent_notes_preserved": false,
       "lineage_cost": null,
       "lineage_order": [],
       "lineage_status": "INFEASIBLE",
       "no_alternative_status": "INFEASIBLE",
+      "notes_bytes_unchanged": true,
       "rebuild_all_cost": null,
       "rebuild_all_feasible": false,
+      "revocations_cleared_by_demo_owner": [],
       "scenario": "missing-inputs",
       "unbatched_cost": null
     }

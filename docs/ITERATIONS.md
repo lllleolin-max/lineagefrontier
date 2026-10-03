@@ -29,3 +29,17 @@ Before: `f54f950a08b9f64a71622792d529f4cb8e8b791d`. Review found SDK decisions a
 Before correction: `.venv-check/Scripts/python -m unittest discover -s tests -p test_snapshot_review.py -v` exited 1: 4 tests, 2 failures and 1 error. Correction: canonical inventory/recorded-provenance fingerprint, report integrity digest, strict SDK requested-ID collection validation; recipe-only changes deliberately remain compatible with the same assessment.
 
 Verification: rebuilt/reinstalled non-editable wheel; full tests exited 0, 23 passed. Demo and benchmark exited 0. JSON roundtrip/catalog-only adjustment passes; wrong inventory and modified availability now reject. Fix commit subject: `Bind rebuild decisions to intact provenance snapshots`; exact after SHA appears in final history table. Remaining boundary: unkeyed integrity is not signer authentication; a valid old assessment does not observe later filesystem changes.
+
+## Exact review history
+
+| Round | Before SHA | After correction SHA |
+|---|---|---|
+| 1 | 1bca610f53a229a867598df374ca6ea038568c81 | a73b4ff0af64437a6d322a910590fa196e5bd43b |
+| 2 | a73b4ff0af64437a6d322a910590fa196e5bd43b | f54f950a08b9f64a71622792d529f4cb8e8b791d |
+| 3 | f54f950a08b9f64a71622792d529f4cb8e8b791d | c90c4f61cd1ce33baf1697619e55a681b4a42d0c |
+
+## Additional verification (not counted as a fourth correction cycle)
+
+80 deterministic randomized acyclic recipe catalogs, including zero costs, atomic outputs, alternatives, unavailable inputs and infeasibility, match the independent version-aware action-order oracle. Real sparse 64 MiB+1 artifact and 2 MiB+1 manifest are rejected. Assessment/planning preserve every input/output byte. Expanded benchmark actually executes/recaptures each feasible fixed-demo plan and reports explicit synthetic owner approval when replacing withdrawn output records. A generation ablation computes cost 2 by executing monotone availability, while independent checker rejects it and the correct selected plan costs 4.
+
+Final local suite: 28 tests run, 27 passed, 1 skipped. The root-escaping symlink probe was skipped on Windows because WinError 1314 denies symlink creation; the Ubuntu CI job includes that probe but remote CI remains unverified. Python 3.11 is declared/test-matrix scope, not a locally observed run (only Python 3.14.3 is installed here). No remote repository or publication was created by this builder.

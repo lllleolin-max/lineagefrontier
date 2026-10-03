@@ -1,6 +1,6 @@
 # Model, subset and boundaries
 
-Sources verified 2026-10-03: [in-toto Statement v1](https://github.com/in-toto/attestation/blob/main/spec/v1/statement.md), [SLSA v1.2 build provenance](https://slsa.dev/spec/v1.2/build-provenance), [SLSA artifact verification](https://slsa.dev/spec/v1.2/verifying-artifacts), [GNU Make prerequisites](https://www.gnu.org/software/make/manual/html_node/Prerequisite-Types.html). Established provenance formats already describe outputs and resolved dependencies; Make already handles normal prerequisites and rebuilding. We claim a reproducible engineering combination, not a new provenance format or first dependency invalidation algorithm. The benchmark implements disclosed baselines, not full competitor tools.
+Sources verified 2026-10-03: [in-toto Statement v1](https://github.com/in-toto/attestation/blob/main/spec/v1/statement.md), [SLSA v1.2 build provenance](https://slsa.dev/spec/v1.2/build-provenance), [SLSA artifact verification](https://slsa.dev/spec/v1.2/verifying-artifacts), [GNU Make prerequisites](https://www.gnu.org/software/make/manual/make.html#Prerequisite-Types). Established provenance formats already describe outputs and resolved dependencies; Make already handles normal prerequisites and rebuilding. We claim a reproducible engineering combination, not a new provenance format or first dependency invalidation algorithm. The benchmark implements disclosed baselines, not full competitor tools.
 
 ## Manifest v1
 
@@ -29,3 +29,4 @@ Tests include actual byte changes, revoked/absent sources, independent branches,
 ## Snapshot association
 
 Assessments contain a deterministic inventory/provenance fingerprint and a canonical report digest. `plan()` rejects another inventory/path/provenance revision and accidental report edits. JSON roundtrips preserve it; changing only action costs/recipes is allowed because those do not affect recorded byte assessment. This is integrity/association checking, not authentication: an adversary can recompute an unkeyed digest. A valid old snapshot does not automatically observe later filesystem writes; obtain a new assessment or run against an unchanged external snapshot.
+
